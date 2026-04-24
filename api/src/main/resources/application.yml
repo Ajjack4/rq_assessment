@@ -1,1 +1,7 @@
-spring.application.name: entry-level-java-challenge
+spring:
+  application:
+    name: entry-level-java-challenge
+  security:
+    user:
+      name: reliaquest
+      password: ${API_PASSWORD:changeme}
