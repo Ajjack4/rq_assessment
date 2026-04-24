@@ -3,6 +3,7 @@ package com.challenge.api.controller;
 import com.challenge.api.model.ErrorResponse;
 import java.util.List;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -59,10 +60,10 @@ public class GlobalExceptionHandler {
      * @return error response with the embedded status code
      */
     @ExceptionHandler(ResponseStatusException.class)
-    @ResponseBody
-    public ErrorResponse handleResponseStatusException(ResponseStatusException ex) {
+    public ResponseEntity<ErrorResponse> handleResponseStatusException(ResponseStatusException ex) {
         String reason =
                 ex.getReason() != null ? ex.getReason() : ex.getStatusCode().toString();
-        return new ErrorResponse(ex.getStatusCode().value(), List.of(reason));
+        return ResponseEntity.status(ex.getStatusCode())
+                .body(new ErrorResponse(ex.getStatusCode().value(), List.of(reason)));
     }
 }
