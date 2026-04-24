@@ -1,6 +1,7 @@
 package com.challenge.api.validation;
 
 import com.challenge.api.model.CreateEmployeeRequest;
+import com.challenge.api.model.JobTitle;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
@@ -13,32 +14,35 @@ import org.springframework.web.server.ResponseStatusException;
  *
  * Works alongside Jakarta Bean Validation annotations on the request DTO.
  * Jakarta handles structural constraints (not-null, not-blank, min values).
- * This validator handles security concerns that annotations cannot express:
- * injection attacks, character allowlists, upper-bound business rules, and
- * input length caps to prevent memory abuse.
+ * This validator enforces everything annotations cannot express: email format,
+ * job title whitelisting, explicit numeric bounds, injection protection, and
+ * character allowlists. All violations are collected before throwing so the
+ * caller sees every problem at once.
  *
  * Inject this component wherever employee input needs to be validated.
  */
 @Component
 public class EmployeeValidator {
 
-    // Allows letters (including Unicode for international names), spaces, hyphens, apostrophes.
-    // Rejects digits and special characters that have no place in a person's name.
+    // Unicode letters, spaces, hyphens, apostrophes — covers international names.
     private static final Pattern NAME_PATTERN = Pattern.compile("^[\\p{L} '\\-]+$");
 
-    // Detects HTML/XML tags — catches stored XSS attempts in any string field.
+    // RFC 5322-aligned email pattern: requires localpart @ domain . TLD (2+ chars).
+    private static final Pattern EMAIL_PATTERN =
+            Pattern.compile("^[a-zA-Z0-9._%+\\-]+@[a-zA-Z0-9.\\-]+\\.[a-zA-Z]{2,}$");
+
+    // Detects HTML/XML tags — blocks stored XSS in any string field.
     private static final Pattern HTML_TAG_PATTERN = Pattern.compile("<[^>]+>");
 
     private static final int MAX_NAME_LENGTH = 100;
-    private static final int MAX_JOB_TITLE_LENGTH = 150;
     private static final int MAX_EMAIL_LENGTH = 254; // RFC 5321 maximum
+    private static final int MIN_SALARY = 0;
     private static final int MAX_SALARY = 10_000_000;
+    private static final int MIN_AGE = 16;
     private static final int MAX_AGE = 100;
 
     /**
      * Validates all fields in the given request, collecting every violation before throwing.
-     *
-     * The caller sees all problems at once rather than fixing them one at a time.
      *
      * @param request the request to validate; assumed non-null (enforced upstream by @Valid)
      * @throws ResponseStatusException 400 if any field fails validation
@@ -48,8 +52,8 @@ public class EmployeeValidator {
 
         validateName("firstName", request.getFirstName(), violations);
         validateName("lastName", request.getLastName(), violations);
-        validateJobTitle(request.getJobTitle(), violations);
         validateEmail(request.getEmail(), violations);
+        validateJobTitle(request.getJobTitle(), violations);
         validateSalary(request.getSalary(), violations);
         validateAge(request.getAge(), violations);
 
@@ -78,24 +82,10 @@ public class EmployeeValidator {
     }
 
     /**
-     * Validates the jobTitle field.
+     * Validates the email field format and checks for injection.
      *
-     * Job titles allow a broader character set than names but must not contain HTML or null bytes.
-     */
-    private void validateJobTitle(String value, List<String> violations) {
-        if (value == null) return;
-
-        if (value.length() > MAX_JOB_TITLE_LENGTH) {
-            violations.add("jobTitle must not exceed " + MAX_JOB_TITLE_LENGTH + " characters");
-        }
-        checkInjection("jobTitle", value, violations);
-    }
-
-    /**
-     * Validates the email field.
-     *
-     * Format is enforced upstream by {@code @Email}. This method caps length per RFC 5321
-     * and checks for injection payloads.
+     * Applies its own regex rather than relying solely on {@code @Email}, which uses
+     * a lenient pattern that can pass malformed addresses like "user@domain" (no TLD).
      */
     private void validateEmail(String value, List<String> violations) {
         if (value == null) return;
@@ -103,36 +93,57 @@ public class EmployeeValidator {
         if (value.length() > MAX_EMAIL_LENGTH) {
             violations.add("email must not exceed " + MAX_EMAIL_LENGTH + " characters");
         }
+        if (!EMAIL_PATTERN.matcher(value).matches()) {
+            violations.add("email must be a valid address (e.g. user@example.com)");
+        }
         checkInjection("email", value, violations);
     }
 
     /**
-     * Validates that salary does not exceed the upper business limit.
+     * Validates that the job title is one of the accepted values defined in {@link JobTitle}.
      *
-     * The lower bound (>= 0) is enforced upstream by {@code @Min(0)}.
+     * Matching is case-insensitive so "product manager" and "Product Manager" are both accepted.
+     */
+    private void validateJobTitle(String value, List<String> violations) {
+        if (value == null) return;
+
+        checkInjection("jobTitle", value, violations);
+        if (!JobTitle.isValid(value)) {
+            violations.add("jobTitle must be one of: " + String.join(", ", JobTitle.validDisplayNames()));
+        }
+    }
+
+    /**
+     * Validates that salary is within the accepted range [{@code MIN_SALARY}, {@code MAX_SALARY}].
+     *
+     * Both bounds are checked here as a definitive safety net, even though {@code @Min(0)}
+     * on the DTO enforces the lower bound at the Jakarta layer.
      */
     private void validateSalary(Integer value, List<String> violations) {
         if (value == null) return;
 
+        if (value < MIN_SALARY) {
+            violations.add("salary must be " + MIN_SALARY + " or greater");
+        }
         if (value > MAX_SALARY) {
             violations.add("salary must not exceed " + MAX_SALARY);
         }
     }
 
     /**
-     * Validates that age falls within a realistic working-age range.
+     * Validates that age is within the accepted range [{@code MIN_AGE}, {@code MAX_AGE}].
      *
-     * The lower bound (>= 16) is enforced upstream by {@code @Min(16)}.
+     * Both bounds are checked here as a definitive safety net, even though {@code @Min(16)}
+     * on the DTO enforces the lower bound at the Jakarta layer.
      */
     private void validateAge(Integer value, List<String> violations) {
         if (value == null) return;
 
+        if (value < MIN_AGE) {
+            violations.add("age must be at least " + MIN_AGE);
+        }
         if (value > MAX_AGE) {
             violations.add("age must not exceed " + MAX_AGE);
-        }
-
-        if (value <= 0) {
-            violations.add("age must be a positive value");
         }
     }
 
