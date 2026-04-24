@@ -5,10 +5,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * Whitelist of accepted job titles for employee records.
- *
- * Only values defined here are accepted by the create-employee endpoint.
- * The {@code displayName} is what callers must send in the request body.
+ * Accepted job titles for employee records.
+ * The create-employee endpoint rejects anything not on this list.
  */
 public enum JobTitle {
     SOFTWARE_ENGINEER("Software Engineer"),
@@ -39,10 +37,10 @@ public enum JobTitle {
     }
 
     /**
-     * Returns true if the given value matches any accepted job title (case-insensitive).
+     * Returns true if the given string matches any job title (case-insensitive).
      *
-     * @param value the job title string from the request
-     * @return true if accepted, false otherwise
+     * @param value the job title to check
+     * @return true if valid, false otherwise
      */
     public static boolean isValid(String value) {
         if (value == null) return false;
@@ -55,9 +53,9 @@ public enum JobTitle {
     }
 
     /**
-     * Returns a comma-separated list of all accepted display names, for use in error messages.
+     * All accepted display names: used in validation error messages.
      *
-     * @return all valid job title strings
+     * @return set of all valid job title strings
      */
     public static Set<String> validDisplayNames() {
         return Arrays.stream(values()).map(JobTitle::getDisplayName).collect(Collectors.toSet());

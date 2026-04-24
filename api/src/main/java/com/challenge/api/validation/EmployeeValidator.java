@@ -10,42 +10,34 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.server.ResponseStatusException;
 
 /**
- * Centralized validator for employee request data.
- *
- * Works alongside Jakarta Bean Validation annotations on the request DTO.
- * Jakarta handles structural constraints (not-null, not-blank, min values).
- * This validator enforces everything annotations cannot express: email format,
- * job title whitelisting, explicit numeric bounds, injection protection, and
- * character allowlists. All violations are collected before throwing so the
- * caller sees every problem at once.
- *
- * Inject this component wherever employee input needs to be validated.
+ * Validates employee request fields beyond what Jakarta annotations can do.
+ * Collects all violations before throwing, so the caller sees everything wrong at once.
+ * Inject this wherever employee input needs checking.
  */
 @Component
 public class EmployeeValidator {
 
-    // Unicode letters, spaces, hyphens, apostrophes — covers international names.
+    // Letters (Unicode), spaces, hyphens, apostrophes — covers international names.
     private static final Pattern NAME_PATTERN = Pattern.compile("^[\\p{L} '\\-]+$");
 
-    // RFC 5322-aligned email pattern: requires localpart @ domain . TLD (2+ chars).
+    // Basic email check: needs a local part, @, domain, and a TLD of 2+ chars.
     private static final Pattern EMAIL_PATTERN =
             Pattern.compile("^[a-zA-Z0-9._%+\\-]+@[a-zA-Z0-9.\\-]+\\.[a-zA-Z]{2,}$");
 
-    // Detects HTML/XML tags — blocks stored XSS in any string field.
+    // Catches HTML/script tags — prevents stored XSS if data is ever rendered in a browser.
     private static final Pattern HTML_TAG_PATTERN = Pattern.compile("<[^>]+>");
 
     private static final int MAX_NAME_LENGTH = 100;
-    private static final int MAX_EMAIL_LENGTH = 254; // RFC 5321 maximum
+    private static final int MAX_EMAIL_LENGTH = 254; // RFC 5321
     private static final int MIN_SALARY = 0;
     private static final int MAX_SALARY = 10_000_000;
     private static final int MIN_AGE = 16;
     private static final int MAX_AGE = 100;
 
     /**
-     * Validates all fields in the given request, collecting every violation before throwing.
+     * Runs all field validations. Throws 400 if anything fails.
      *
-     * @param request the request to validate; assumed non-null (enforced upstream by @Valid)
-     * @throws ResponseStatusException 400 if any field fails validation
+     * @param request the incoming create-employee request
      */
     public void validate(CreateEmployeeRequest request) {
         List<String> violations = new ArrayList<>();
@@ -63,15 +55,9 @@ public class EmployeeValidator {
         }
     }
 
-    /**
-     * Validates a name field (firstName or lastName).
-     *
-     * Names must contain only Unicode letters, spaces, hyphens, or apostrophes.
-     * This covers international names while blocking digits, scripts, and injection payloads.
-     */
+    // Only letters, spaces, hyphens, apostrophes. Digits and special chars aren't valid in names.
     private void validateName(String field, String value, List<String> violations) {
         if (value == null) return;
-
         if (value.length() > MAX_NAME_LENGTH) {
             violations.add(field + " must not exceed " + MAX_NAME_LENGTH + " characters");
         }
@@ -81,15 +67,9 @@ public class EmployeeValidator {
         checkInjection(field, value, violations);
     }
 
-    /**
-     * Validates the email field format and checks for injection.
-     *
-     * Applies its own regex rather than relying solely on {@code @Email}, which uses
-     * a lenient pattern that can pass malformed addresses like "user@domain" (no TLD).
-     */
+    // @Email is lenient and can pass "user@domain" (no TLD), so we apply our own check too.
     private void validateEmail(String value, List<String> violations) {
         if (value == null) return;
-
         if (value.length() > MAX_EMAIL_LENGTH) {
             violations.add("email must not exceed " + MAX_EMAIL_LENGTH + " characters");
         }
@@ -99,29 +79,18 @@ public class EmployeeValidator {
         checkInjection("email", value, violations);
     }
 
-    /**
-     * Validates that the job title is one of the accepted values defined in {@link JobTitle}.
-     *
-     * Matching is case-insensitive so "product manager" and "Product Manager" are both accepted.
-     */
+    // Must match one of the values in JobTitle. Case-insensitive.
     private void validateJobTitle(String value, List<String> violations) {
         if (value == null) return;
-
         checkInjection("jobTitle", value, violations);
         if (!JobTitle.isValid(value)) {
             violations.add("jobTitle must be one of: " + String.join(", ", JobTitle.validDisplayNames()));
         }
     }
 
-    /**
-     * Validates that salary is within the accepted range [{@code MIN_SALARY}, {@code MAX_SALARY}].
-     *
-     * Both bounds are checked here as a definitive safety net, even though {@code @Min(0)}
-     * on the DTO enforces the lower bound at the Jakarta layer.
-     */
+    // @Min(0) on the DTO handles the lower bound too, but we check here as a safety net.
     private void validateSalary(Integer value, List<String> violations) {
         if (value == null) return;
-
         if (value < MIN_SALARY) {
             violations.add("salary must be " + MIN_SALARY + " or greater");
         }
@@ -130,15 +99,9 @@ public class EmployeeValidator {
         }
     }
 
-    /**
-     * Validates that age is within the accepted range [{@code MIN_AGE}, {@code MAX_AGE}].
-     *
-     * Both bounds are checked here as a definitive safety net, even though {@code @Min(16)}
-     * on the DTO enforces the lower bound at the Jakarta layer.
-     */
+    // @Min(16) on the DTO handles the lower bound too, but we check here as a safety net.
     private void validateAge(Integer value, List<String> violations) {
         if (value == null) return;
-
         if (value < MIN_AGE) {
             violations.add("age must be at least " + MIN_AGE);
         }
@@ -147,12 +110,7 @@ public class EmployeeValidator {
         }
     }
 
-    /**
-     * Checks a string field for injection attack patterns.
-     *
-     * Null bytes can truncate strings in downstream systems and bypass filters.
-     * HTML tags in stored data can execute as scripts if ever rendered in a browser.
-     */
+    // Null bytes can bypass string filters. HTML tags are a stored XSS risk.
     private void checkInjection(String field, String value, List<String> violations) {
         if (value.contains("\0")) {
             violations.add(field + " contains invalid null byte characters");

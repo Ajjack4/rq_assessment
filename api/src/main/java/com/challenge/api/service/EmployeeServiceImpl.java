@@ -16,10 +16,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 /**
- * In-memory implementation of {@link EmployeeService} backed by a {@link ConcurrentHashMap}.
- *
- * Thread-safe without explicit synchronization. Seeded with mock employees at startup so
- * {@code GET /api/v1/employee} returns data without requiring a prior {@code POST}.
+ * In-memory employee store backed by a ConcurrentHashMap.
+ * Pre-seeded with a few mock employees so GET /api/v1/employee isn't empty on startup.
  */
 @Service
 public class EmployeeServiceImpl implements EmployeeService {
@@ -37,11 +35,7 @@ public class EmployeeServiceImpl implements EmployeeService {
         return new ArrayList<>(store.values());
     }
 
-    /**
-     * {@inheritDoc}
-     *
-     * @throws ResponseStatusException 404 if no employee exists for the given UUID
-     */
+    /** {@inheritDoc} */
     @Override
     public Employee getEmployeeByUuid(UUID uuid) {
         Employee employee = store.get(uuid);
@@ -51,12 +45,7 @@ public class EmployeeServiceImpl implements EmployeeService {
         return employee;
     }
 
-    /**
-     * {@inheritDoc}
-     *
-     * Runs {@link EmployeeValidator#validate} before persisting to enforce security
-     * constraints and business rules beyond what Jakarta annotations can express.
-     */
+    /** {@inheritDoc} */
     @Override
     public Employee createEmployee(CreateEmployeeRequest request) {
         employeeValidator.validate(request);
@@ -77,11 +66,9 @@ public class EmployeeServiceImpl implements EmployeeService {
     }
 
     /**
-     * Populates the store with mock employees at startup.
-     *
-     * Uses {@code @PostConstruct} rather than the constructor to avoid calling an overridable
-     * method before the bean is fully initialized. Routes through {@link #createEmployee} so
-     * UUID generation and field derivation stay in one place.
+     * Seeds the store with mock data on startup.
+     * Uses @PostConstruct instead of the constructor to avoid calling an overridable
+     * method before the bean is ready.
      */
     @PostConstruct
     void seedMockData() {
@@ -90,17 +77,7 @@ public class EmployeeServiceImpl implements EmployeeService {
         createEmployee(buildRequest("Priya", "Nair", 105000, 31, "Product Manager", "priya.nair@company.com"));
     }
 
-    /**
-     * Builds a {@link CreateEmployeeRequest} from the given attributes.
-     *
-     * @param firstName first name
-     * @param lastName last name
-     * @param salary annual salary in USD
-     * @param age age in years
-     * @param jobTitle job title
-     * @param email company email address
-     * @return a fully populated request
-     */
+    /** Helper to build a CreateEmployeeRequest for seeding, keeps seedMockData readable. */
     private CreateEmployeeRequest buildRequest(
             String firstName, String lastName, Integer salary, Integer age, String jobTitle, String email) {
         CreateEmployeeRequest request = new CreateEmployeeRequest();

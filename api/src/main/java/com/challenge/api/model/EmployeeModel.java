@@ -5,10 +5,8 @@ import java.util.UUID;
 import lombok.Data;
 
 /**
- * Concrete implementation of the {@link Employee} domain contract.
- *
- * {@code @Data} generates all getters and setters required by the interface,
- * along with {@code equals}, {@code hashCode}, and {@code toString}.
+ * Concrete Employee implementation. @Data handles all the getters/setters
+ * the Employee interface requires.
  */
 @Data
 public class EmployeeModel implements Employee {
@@ -17,7 +15,7 @@ public class EmployeeModel implements Employee {
     private String firstName;
     private String lastName;
 
-    /** Derived from {@code firstName} and {@code lastName} at creation time. */
+    /** firstName + lastName, set at creation time. */
     private String fullName;
 
     private Integer salary;
@@ -26,6 +24,6 @@ public class EmployeeModel implements Employee {
     private String email;
     private Instant contractHireDate;
 
-    /** Null when the employee has not been terminated. */
+    /** Null means the employee is still active. */
     private Instant contractTerminationDate;
 }

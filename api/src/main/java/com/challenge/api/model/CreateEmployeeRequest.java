@@ -8,19 +8,9 @@ import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 /**
- * Request body for the create-employee endpoint.
- *
- * Only contains caller-supplied attributes. Server-side fields — {@code uuid},
- * {@code fullName}, and {@code contractHireDate} — are assigned by the service
- * and must not be included in the request. Any extra fields are ignored.
- *
- * Validation is two-layered:
- * 1. Jakarta annotations here enforce structural constraints (presence, format, min bounds).
- * 2. {@code EmployeeValidator} enforces security and business constraints (email regex,
- *    job title whitelist, upper bounds, injection protection).
- *
- * Accepted job titles are defined in {@link JobTitle}. The value must match a
- * {@code JobTitle} display name (case-insensitive), e.g. "Product Manager".
+ * What the caller sends when creating an employee.
+ * Don't include uuid, fullName, or contractHireDate — the backend sets those.
+ * jobTitle must match one of the values in {@link JobTitle} (case-insensitive).
  */
 @Data
 public class CreateEmployeeRequest {
@@ -33,17 +23,17 @@ public class CreateEmployeeRequest {
     @Size(max = 100)
     private String lastName;
 
-    /** Annual salary in USD; must be zero or greater. */
+    /** In USD. Must be 0 or more. */
     @NotNull
     @Min(0)
     private Integer salary;
 
-    /** Must be at least 16 to satisfy minimum working-age requirements. */
+    /** Must be between 16 and 100. */
     @NotNull
     @Min(16)
     private Integer age;
 
-    /** Must match an accepted value from {@link JobTitle} (case-insensitive). */
+    /** Must match a value from {@link JobTitle}, e.g. "Product Manager". */
     @NotBlank
     private String jobTitle;
 

@@ -15,29 +15,21 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
-/**
- * Exposes employee management endpoints at {@code /api/v1/employee}.
- *
- * Handles HTTP concerns only — routing, status codes, and request binding.
- * All business logic is delegated to {@link EmployeeService}.
- */
+/** REST endpoints for employee management. Routes to /api/v1/employee. */
 @RestController
 @RequestMapping("/api/v1/employee")
 public class EmployeeController {
 
     private final EmployeeService employeeService;
 
-    /**
-     * @param employeeService the service handling employee business logic
-     */
     public EmployeeController(EmployeeService employeeService) {
         this.employeeService = employeeService;
     }
 
     /**
-     * Returns all employees, unfiltered.
+     * Returns all employees. List may be empty but never null.
      *
-     * @return 200 with all employees; may be an empty list
+     * @return list of all employees
      */
     @GetMapping
     public List<Employee> getAllEmployees() {
@@ -45,10 +37,10 @@ public class EmployeeController {
     }
 
     /**
-     * Returns a single employee by UUID.
+     * Returns the employee with the given UUID, or 404 if not found.
      *
-     * @param uuid the employee's unique identifier
-     * @return 200 with the matching employee, or 404 if not found
+     * @param uuid employee identifier
+     * @return the matching employee
      */
     @GetMapping("/{uuid}")
     public Employee getEmployeeByUuid(@PathVariable UUID uuid) {
@@ -56,12 +48,10 @@ public class EmployeeController {
     }
 
     /**
-     * Creates a new employee from the request body.
+     * Creates a new employee. Returns 201 on success, 400 if validation fails.
      *
-     * Returns 201 Created to signal that a new resource was created, per REST semantics.
-     *
-     * @param requestBody the attributes required to create the employee
-     * @return 201 with the created employee including all server-assigned fields
+     * @param requestBody fields needed to create the employee
+     * @return the newly created employee with server-assigned fields
      */
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)

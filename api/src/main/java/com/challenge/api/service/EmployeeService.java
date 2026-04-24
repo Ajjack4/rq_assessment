@@ -6,17 +6,15 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Business operations for employee management.
- *
- * Backed by an interface so the HTTP layer stays decoupled from the implementation,
- * making it easy to swap the in-memory store for a real persistence layer later.
+ * Core employee operations. Interface-backed so the implementation
+ * can be swapped out later when a real DB is introduced.
  */
 public interface EmployeeService {
 
     /**
-     * Returns all employees in the system.
+     * Returns all employees. Never null, may be empty.
      *
-     * @return all employees; never null, may be empty
+     * @return list of all employees
      */
     List<Employee> getAllEmployees();
 
@@ -30,11 +28,10 @@ public interface EmployeeService {
     Employee getEmployeeByUuid(UUID uuid);
 
     /**
-     * Creates a new employee from the given request.
+     * Creates a new employee. UUID, fullName, and hire date are assigned here —
+     * don't include them in the request.
      *
-     * The service assigns the UUID, derives {@code fullName}, and sets {@code contractHireDate}.
-     *
-     * @param request the attributes for the new employee
+     * @param request fields for the new employee
      * @return the created employee including all server-assigned fields
      */
     Employee createEmployee(CreateEmployeeRequest request);
