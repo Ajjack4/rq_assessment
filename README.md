@@ -128,20 +128,6 @@ Please keep the following in mind while working on this challenge:
   * E.g. avoid liberal use of new-lines, odd variable and method names, random indentation, etc...
 * Test cases are not required
 
-## Problem Statement
-
-Your employer has recently purchased a license to top-tier SaaS platform, Employees-R-US, to off-load all employee management responsibilities.
-Unfortunately, your company's product has an existing employee management solution that is tightly coupled to other services and therefore 
-cannot be replaced whole-cloth. Product and Development leads in your department have decided it would be best to interface
-the existing employee management solution with the commercial offering from Employees-R-US for the time being until all employees can be
-migrated to the new SaaS platform.
-
-Your ask is to expose employee information as a protected, secure REST API for consumption by Employees-R-US web hooks.
-The initial REST API will consist of 3 endpoints, listed in the following section. If for any reason the implementation 
-of an endpoint is problematic, the team lead will accept **pseudo-code** and a pertinent description (e.g. java-doc) of intent.
-
-Good luck!
-
 ## Endpoints to implement (API module)
 
 _See `com.challenge.api.controller.EmployeeController` for details._
