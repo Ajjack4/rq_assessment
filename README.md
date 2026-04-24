@@ -6,25 +6,17 @@
 
 ## My Approach
 
-The goal was to expose a protected REST API that wraps an in-memory employee store. I approached this in three layers:
+## My Approach
 
-**1. Controller (`EmployeeController`)**
-Thin layer responsible only for routing. No business logic — delegates everything to the service. HTTP semantics are handled here: `GET` for reads, `POST` for creation, `201 Created` on success.
+Three-layer REST API over an in-memory `ConcurrentHashMap` store:
 
-**2. Service (`EmployeeService` / `EmployeeServiceImpl`)**
-Backed by a `ConcurrentHashMap` for thread-safe in-memory storage. UUID, `fullName`, and `contractHireDate` are assigned here — not by the caller. Pre-seeded with three employees on startup via `@PostConstruct` so the `GET` endpoints return data immediately.
+- **Controller**: routing only; delegates all logic to the service layer.
+- **Service**: assigns UUID, `fullName`, and hire date; pre-seeded with mock data via `@PostConstruct`.
+- **Validation**: Jakarta annotations for structural constraints, `EmployeeValidator` for business rules (job title enum, name format, XSS/null-byte checks); all violations collected before throwing.
 
-**3. Validation (`EmployeeValidator` + Jakarta annotations)**
-Two-layer validation strategy:
-- Jakarta `@Valid` annotations on the DTO handle structural constraints (not blank, min/max values, email format).
-- `EmployeeValidator` handles business-rule constraints: valid job titles from the `JobTitle` enum, name character rules, XSS/null-byte injection prevention, and salary/age upper bounds.
-- All violations are collected before throwing so callers see every error in one response.
+**Security:** HTTP Basic Auth via Spring Security, CSRF disabled, stateless sessions.
 
-**Security**
-HTTP Basic Auth is enforced on all endpoints via Spring Security. CSRF is disabled (correct for stateless REST APIs) and sessions are stateless — every request must carry credentials.
-
-**Error handling**
-`GlobalExceptionHandler` centralises all exception mapping. A `ResponseEntity<ErrorResponse>` return type is used for `ResponseStatusException` to ensure the exception's status code (e.g. 404) is forwarded correctly to the HTTP response — returning a plain type would default to 200.
+**Error handling:** `GlobalExceptionHandler` maps all exceptions to a consistent `ErrorResponse`. `ResponseStatusException` is handled via `ResponseEntity` to correctly propagate status codes (e.g. 404) to the HTTP response.
 
 ---
 
