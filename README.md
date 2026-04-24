@@ -6,25 +6,15 @@
 
 ## My Approach
 
-The goal was to expose a protected REST API that wraps an in-memory employee store. I approached this in three layers:
+Three-layer REST API over an in-memory `ConcurrentHashMap` store:
 
-**1. Controller (`EmployeeController`)**
-Thin layer responsible only for routing. No business logic — delegates everything to the service. HTTP semantics are handled here: `GET` for reads, `POST` for creation, `201 Created` on success.
+- **Controller** — routing only; delegates all logic to the service layer.
+- **Service** — assigns UUID, `fullName`, and hire date; pre-seeded with mock data via `@PostConstruct`.
+- **Validation** — Jakarta annotations for structural constraints, `EmployeeValidator` for business rules (job title enum, name format, XSS/null-byte checks); all violations collected before throwing.
 
-**2. Service (`EmployeeService` / `EmployeeServiceImpl`)**
-Backed by a `ConcurrentHashMap` for thread-safe in-memory storage. UUID, `fullName`, and `contractHireDate` are assigned here — not by the caller. Pre-seeded with three employees on startup via `@PostConstruct` so the `GET` endpoints return data immediately.
+**Security:** HTTP Basic Auth via Spring Security, CSRF disabled, stateless sessions.
 
-**3. Validation (`EmployeeValidator` + Jakarta annotations)**
-Two-layer validation strategy:
-- Jakarta `@Valid` annotations on the DTO handle structural constraints (not blank, min/max values, email format).
-- `EmployeeValidator` handles business-rule constraints: valid job titles from the `JobTitle` enum, name character rules, XSS/null-byte injection prevention, and salary/age upper bounds.
-- All violations are collected before throwing so callers see every error in one response.
-
-**Security**
-HTTP Basic Auth is enforced on all endpoints via Spring Security. CSRF is disabled (correct for stateless REST APIs) and sessions are stateless — every request must carry credentials.
-
-**Error handling**
-`GlobalExceptionHandler` centralises all exception mapping. A `ResponseEntity<ErrorResponse>` return type is used for `ResponseStatusException` to ensure the exception's status code (e.g. 404) is forwarded correctly to the HTTP response — returning a plain type would default to 200.
+**Error handling:** `GlobalExceptionHandler` maps all exceptions to a consistent `ErrorResponse`. `ResponseStatusException` is handled via `ResponseEntity` to correctly propagate status codes (e.g. 404) to the HTTP response.
 
 ---
 
@@ -105,21 +95,7 @@ Replace `changeme` in the default only if you are running in an environment wher
 
 ---
 
-## Problem Statement
-
-Your employer has recently purchased a license to top-tier SaaS platform, Employees-R-US, to off-load all employee management responsibilities.
-Unfortunately, your company's product has an existing employee management solution that is tightly coupled to other services and therefore 
-cannot be replaced whole-cloth. Product and Development leads in your department have decided it would be best to interface
-the existing employee management solution with the commercial offering from Employees-R-US for the time being until all employees can be
-migrated to the new SaaS platform.
-
-Your ask is to expose employee information as a protected, secure REST API for consumption by Employees-R-US web hooks.
-The initial REST API will consist of 3 endpoints, listed in the following section. If for any reason the implementation 
-of an endpoint is problematic, the team lead will accept **pseudo-code** and a pertinent description (e.g. java-doc) of intent.
-
-Good luck!
-
----
+## Original Assignment
 
 Please keep the following in mind while working on this challenge:
 * Code implementations will not be graded for **correctness** but rather on practicality
@@ -128,7 +104,7 @@ Please keep the following in mind while working on this challenge:
   * E.g. avoid liberal use of new-lines, odd variable and method names, random indentation, etc...
 * Test cases are not required
 
-## Problem Statement
+### Problem Statement
 
 Your employer has recently purchased a license to top-tier SaaS platform, Employees-R-US, to off-load all employee management responsibilities.
 Unfortunately, your company's product has an existing employee management solution that is tightly coupled to other services and therefore 

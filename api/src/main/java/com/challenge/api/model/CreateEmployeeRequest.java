@@ -24,13 +24,11 @@ public class CreateEmployeeRequest {
     private String lastName;
 
     /** In USD. Must be 0 or more. */
-    @NotNull
-    @Min(0)
+    @NotNull @Min(0)
     private Integer salary;
 
     /** Must be between 16 and 100. */
-    @NotNull
-    @Min(16)
+    @NotNull @Min(16)
     private Integer age;
 
     /** Must match a value from {@link JobTitle}, e.g. "Product Manager". */
